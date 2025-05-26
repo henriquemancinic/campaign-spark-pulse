@@ -24,21 +24,21 @@ export default function Login() {
       const success = await login(credentials.username, credentials.password);
       if (success) {
         toast({
-          title: "Login successful",
-          description: "Welcome back!",
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo de volta!",
         });
         navigate('/dashboard');
       } else {
         toast({
-          title: "Login failed",
-          description: "Invalid credentials or expired token.",
+          title: "Falha no login",
+          description: "Credenciais inválidas ou token expirado.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An error occurred during login.",
+        title: "Erro",
+        description: "Ocorreu um erro durante o login.",
         variant: "destructive",
       });
     } finally {
@@ -55,42 +55,42 @@ export default function Login() {
           </div>
           <CardTitle className="text-2xl font-bold">EmailPro Login</CardTitle>
           <CardDescription>
-            Enter your credentials to access your email marketing dashboard
+            Digite suas credenciais para acessar seu painel de email marketing
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Usuário</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Enter your username"
+                placeholder="Digite seu usuário"
                 value={credentials.username}
                 onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Enter your password"
+                placeholder="Digite sua senha"
                 value={credentials.password}
                 onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Não tem uma conta?{' '}
               <Link to="/register" className="text-primary hover:underline font-medium">
-                Sign up here
+                Cadastre-se aqui
               </Link>
             </p>
           </div>

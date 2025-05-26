@@ -24,14 +24,14 @@ export function Layout({ children }: LayoutProps) {
   }
 
   const navigationItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: Mail },
-    { path: '/email-config', label: 'Email Config', icon: Settings },
-    { path: '/email-lists', label: 'Email Lists', icon: Mail },
-    { path: '/campaigns', label: 'Campaigns', icon: Mail },
+    { path: '/dashboard', label: 'Painel', icon: Mail },
+    { path: '/email-config', label: 'Config. Email', icon: Settings },
+    { path: '/email-lists', label: 'Listas de Email', icon: Mail },
+    { path: '/campaigns', label: 'Campanhas', icon: Mail },
   ];
 
   if (user.role === 'admin') {
-    navigationItems.push({ path: '/admin', label: 'Admin Panel', icon: Users });
+    navigationItems.push({ path: '/admin', label: 'Painel Admin', icon: Users });
   }
 
   return (
@@ -67,12 +67,12 @@ export function Layout({ children }: LayoutProps) {
                 <User className="w-5 h-5 text-gray-400" />
                 <span className="text-sm text-gray-700">{user.name}</span>
                 <span className="text-xs text-gray-500">
-                  Token expires: {new Date(user.tokenExpiry).toLocaleDateString()}
+                  Token expira: {new Date(user.tokenExpiry).toLocaleDateString('pt-BR')}
                 </span>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
-                Logout
+                Sair
               </Button>
             </div>
           </div>

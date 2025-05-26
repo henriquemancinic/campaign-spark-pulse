@@ -39,8 +39,8 @@ export default function Register() {
 
     if (formData.password !== formData.confirmPassword) {
       toast({
-        title: "Password mismatch",
-        description: "Passwords do not match.",
+        title: "Senhas não coincidem",
+        description: "As senhas digitadas não são iguais.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -49,8 +49,8 @@ export default function Register() {
 
     if (formData.password.length < 6) {
       toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters long.",
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
         variant: "destructive",
       });
       setIsLoading(false);
@@ -61,21 +61,21 @@ export default function Register() {
       const success = await register(formData);
       if (success) {
         toast({
-          title: "Registration successful",
-          description: "Your account has been created. You can now log in.",
+          title: "Cadastro realizado com sucesso",
+          description: "Sua conta foi criada. Agora você pode fazer login.",
         });
         navigate('/login');
       } else {
         toast({
-          title: "Registration failed",
-          description: "Username already exists or invalid data.",
+          title: "Falha no cadastro",
+          description: "Nome de usuário já existe ou dados inválidos.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "An error occurred during registration.",
+        title: "Erro",
+        description: "Ocorreu um erro durante o cadastro.",
         variant: "destructive",
       });
     } finally {
@@ -90,19 +90,19 @@ export default function Register() {
           <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-white" />
           </div>
-          <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
+          <CardTitle className="text-2xl font-bold">Criar Conta</CardTitle>
           <CardDescription>
-            Sign up for EmailPro to start your email marketing campaigns
+            Cadastre-se no EmailPro para começar suas campanhas de email marketing
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
+              <Label htmlFor="name">Nome Completo</Label>
               <Input
                 id="name"
                 type="text"
-                placeholder="Enter your full name"
+                placeholder="Digite seu nome completo"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -121,58 +121,58 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company</Label>
+              <Label htmlFor="company">Empresa</Label>
               <Input
                 id="company"
                 type="text"
-                placeholder="Enter your company name"
+                placeholder="Digite o nome da sua empresa"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
+              <Label htmlFor="username">Usuário</Label>
               <Input
                 id="username"
                 type="text"
-                placeholder="Choose a username"
+                placeholder="Escolha um nome de usuário"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Senha</Label>
               <Input
                 id="password"
                 type="password"
-                placeholder="Create a password"
+                placeholder="Crie uma senha"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
               <Input
                 id="confirmPassword"
                 type="password"
-                placeholder="Confirm your password"
+                placeholder="Confirme sua senha"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
                 required
               />
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Creating account...' : 'Create Account'}
+              {isLoading ? 'Criando conta...' : 'Criar Conta'}
             </Button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Already have an account?{' '}
+              Já tem uma conta?{' '}
               <Link to="/login" className="text-primary hover:underline font-medium">
-                Sign in here
+                Entre aqui
               </Link>
             </p>
           </div>
