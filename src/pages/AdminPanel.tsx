@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,14 +7,35 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, User, Clock } from 'lucide-react';
+import { User as UserType } from '@/types/auth';
 
 export default function AdminPanel() {
   const { getAllUsers, updateTokenExpiry } = useAuth();
   const [selectedUser, setSelectedUser] = useState<string>('');
   const [newExpiryDate, setNewExpiryDate] = useState('');
+  const [users, setUsers] = useState<UserType[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const users = getAllUsers();
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const usersData = await getAllUsers();
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load users.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUsers();
+  }, [getAllUsers, toast]);
 
   const handleUpdateExpiry = async () => {
     if (!selectedUser || !newExpiryDate) {
@@ -35,6 +56,9 @@ export default function AdminPanel() {
         });
         setSelectedUser('');
         setNewExpiryDate('');
+        // Refresh users list
+        const usersData = await getAllUsers();
+        setUsers(usersData);
       } else {
         toast({
           title: "Update failed",
@@ -50,6 +74,17 @@ export default function AdminPanel() {
       });
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+          <p className="mt-4 text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-fade-in">
