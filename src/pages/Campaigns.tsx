@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Plus, Calendar, Settings, Play, Pause } from 'lucide-react';
+import { Mail, Plus, Calendar, Settings, Play, Pause, Eye } from 'lucide-react';
 import { EmailCampaign, EmailList } from '@/types/email';
 
 export default function Campaigns() {
@@ -25,6 +24,12 @@ export default function Campaigns() {
     sendInterval: 5,
     emailsPerBatch: 10,
   });
+
+  // Function to detect HTML tags in text
+  const hasHtmlTags = (text: string): boolean => {
+    const htmlTagRegex = /<\/?[a-z][\s\S]*>/i;
+    return htmlTagRegex.test(text);
+  };
 
   useEffect(() => {
     loadCampaigns();
@@ -53,8 +58,8 @@ export default function Campaigns() {
   const createCampaign = () => {
     if (!newCampaign.name.trim() || !newCampaign.subject.trim() || !newCampaign.message.trim()) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all required fields.",
+        title: "Informações faltando",
+        description: "Por favor, preencha todos os campos obrigatórios.",
         variant: "destructive",
       });
       return;
@@ -62,8 +67,8 @@ export default function Campaigns() {
 
     if (!newCampaign.emailListId) {
       toast({
-        title: "No email list selected",
-        description: "Please select an email list for this campaign.",
+        title: "Nenhuma lista de email selecionada",
+        description: "Por favor, selecione uma lista de email para esta campanha.",
         variant: "destructive",
       });
       return;
@@ -72,8 +77,8 @@ export default function Campaigns() {
     const selectedList = emailLists.find(list => list.id === newCampaign.emailListId);
     if (!selectedList) {
       toast({
-        title: "Invalid email list",
-        description: "Selected email list not found.",
+        title: "Lista de email inválida",
+        description: "Lista de email selecionada não foi encontrada.",
         variant: "destructive",
       });
       return;
@@ -108,8 +113,8 @@ export default function Campaigns() {
     setShowCreateForm(false);
     
     toast({
-      title: "Campaign created",
-      description: `Campaign "${campaign.name}" has been created successfully.`,
+      title: "Campanha criada",
+      description: `Campanha "${campaign.name}" foi criada com sucesso.`,
     });
   };
 
@@ -122,8 +127,8 @@ export default function Campaigns() {
     saveCampaigns(updatedCampaigns);
     
     toast({
-      title: "Campaign started",
-      description: "Email campaign is now being sent according to your settings.",
+      title: "Campanha iniciada",
+      description: "A campanha de email está sendo enviada de acordo com suas configurações.",
     });
   };
 
@@ -136,8 +141,8 @@ export default function Campaigns() {
     saveCampaigns(updatedCampaigns);
     
     toast({
-      title: "Campaign paused",
-      description: "Email campaign has been paused.",
+      title: "Campanha pausada",
+      description: "A campanha de email foi pausada.",
     });
   };
 
@@ -156,12 +161,12 @@ export default function Campaigns() {
     <div className="space-y-8 animate-fade-in">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Email Campaigns</h1>
-          <p className="text-gray-600">Create and manage your email marketing campaigns</p>
+          <h1 className="text-3xl font-bold mb-2">Campanhas de Email</h1>
+          <p className="text-gray-600">Crie e gerencie suas campanhas de email marketing</p>
         </div>
         <Button onClick={() => setShowCreateForm(true)} disabled={emailLists.length === 0}>
           <Plus className="w-4 h-4 mr-2" />
-          Create Campaign
+          Criar Campanha
         </Button>
       </div>
 
@@ -169,9 +174,9 @@ export default function Campaigns() {
         <Card>
           <CardContent className="text-center py-8">
             <Mail className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No email lists available</h3>
+            <h3 className="text-lg font-medium text-gray-600 mb-2">Nenhuma lista de email disponível</h3>
             <p className="text-gray-500">
-              You need to create at least one email list before creating campaigns.
+              Você precisa criar pelo menos uma lista de email antes de criar campanhas.
             </p>
           </CardContent>
         </Card>
@@ -181,32 +186,32 @@ export default function Campaigns() {
       {showCreateForm && emailLists.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Create New Campaign</CardTitle>
-            <CardDescription>Set up your email marketing campaign</CardDescription>
+            <CardTitle>Criar Nova Campanha</CardTitle>
+            <CardDescription>Configure sua campanha de email marketing</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="campaign-name">Campaign Name</Label>
+                <Label htmlFor="campaign-name">Nome da Campanha</Label>
                 <Input
                   id="campaign-name"
-                  placeholder="e.g., Newsletter December 2024"
+                  placeholder="ex: Newsletter Dezembro 2024"
                   value={newCampaign.name}
                   onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email-list">Email List</Label>
+                <Label htmlFor="email-list">Lista de Email</Label>
                 <select
                   id="email-list"
                   className="w-full p-2 border rounded-md"
                   value={newCampaign.emailListId}
                   onChange={(e) => setNewCampaign({ ...newCampaign, emailListId: e.target.value })}
                 >
-                  <option value="">Select an email list...</option>
+                  <option value="">Selecione uma lista de email...</option>
                   {emailLists.map((list) => (
                     <option key={list.id} value={list.id}>
-                      {list.name} ({list.emails.length} subscribers)
+                      {list.name} ({list.emails.length} inscritos)
                     </option>
                   ))}
                 </select>
@@ -214,29 +219,45 @@ export default function Campaigns() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="subject">Email Subject</Label>
+              <Label htmlFor="subject">Assunto do Email</Label>
               <Input
                 id="subject"
-                placeholder="Enter the email subject line"
+                placeholder="Digite o assunto do email"
                 value={newCampaign.subject}
                 onChange={(e) => setNewCampaign({ ...newCampaign, subject: e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="message">Email Message</Label>
+              <Label htmlFor="message">Mensagem do Email</Label>
               <Textarea
                 id="message"
-                placeholder="Write your email content here..."
+                placeholder="Escreva o conteúdo do seu email aqui..."
                 rows={8}
                 value={newCampaign.message}
                 onChange={(e) => setNewCampaign({ ...newCampaign, message: e.target.value })}
               />
+              
+              {/* HTML Preview */}
+              {hasHtmlTags(newCampaign.message) && (
+                <div className="mt-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <Eye className="w-4 h-4 text-blue-600" />
+                    <Label className="text-sm font-medium text-blue-600">Preview do Email</Label>
+                  </div>
+                  <div className="border rounded-md p-4 bg-white max-h-96 overflow-y-auto">
+                    <div 
+                      dangerouslySetInnerHTML={{ __html: newCampaign.message }}
+                      className="prose prose-sm max-w-none"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="scheduled-for">Schedule For (Optional)</Label>
+                <Label htmlFor="scheduled-for">Agendar Para (Opcional)</Label>
                 <Input
                   id="scheduled-for"
                   type="datetime-local"
@@ -245,7 +266,7 @@ export default function Campaigns() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="emails-per-batch">Emails per Batch</Label>
+                <Label htmlFor="emails-per-batch">Emails por Lote</Label>
                 <Input
                   id="emails-per-batch"
                   type="number"
@@ -256,7 +277,7 @@ export default function Campaigns() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="send-interval">Interval (minutes)</Label>
+                <Label htmlFor="send-interval">Intervalo (minutos)</Label>
                 <Input
                   id="send-interval"
                   type="number"
@@ -269,9 +290,9 @@ export default function Campaigns() {
             </div>
 
             <div className="flex space-x-4">
-              <Button onClick={createCampaign}>Create Campaign</Button>
+              <Button onClick={createCampaign}>Criar Campanha</Button>
               <Button variant="outline" onClick={() => setShowCreateForm(false)}>
-                Cancel
+                Cancelar
               </Button>
             </div>
           </CardContent>
@@ -293,25 +314,25 @@ export default function Campaigns() {
                         {campaign.status}
                       </span>
                     </div>
-                    <p className="text-gray-600 mb-2">Subject: {campaign.subject}</p>
+                    <p className="text-gray-600 mb-2">Assunto: {campaign.subject}</p>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-500">
                       <div>
-                        <span className="font-medium">List:</span> {emailList?.name || 'Unknown'}
+                        <span className="font-medium">Lista:</span> {emailList?.name || 'Desconhecida'}
                       </div>
                       <div>
-                        <span className="font-medium">Total Emails:</span> {campaign.totalEmails}
+                        <span className="font-medium">Total de Emails:</span> {campaign.totalEmails}
                       </div>
                       <div>
-                        <span className="font-medium">Sent:</span> {campaign.sentCount}
+                        <span className="font-medium">Enviados:</span> {campaign.sentCount}
                       </div>
                       <div>
-                        <span className="font-medium">Progress:</span> {Math.round((campaign.sentCount / campaign.totalEmails) * 100)}%
+                        <span className="font-medium">Progresso:</span> {Math.round((campaign.sentCount / campaign.totalEmails) * 100)}%
                       </div>
                     </div>
                     {campaign.scheduledFor && (
                       <div className="mt-2 text-sm text-gray-500">
                         <Calendar className="w-4 h-4 inline mr-1" />
-                        Scheduled: {new Date(campaign.scheduledFor).toLocaleString()}
+                        Agendado: {new Date(campaign.scheduledFor).toLocaleString('pt-BR')}
                       </div>
                     )}
                   </div>
@@ -319,13 +340,13 @@ export default function Campaigns() {
                     {(campaign.status === 'draft' || campaign.status === 'scheduled') && (
                       <Button size="sm" onClick={() => startCampaign(campaign.id)}>
                         <Play className="w-4 h-4 mr-1" />
-                        Start
+                        Iniciar
                       </Button>
                     )}
                     {campaign.status === 'sending' && (
                       <Button size="sm" variant="outline" onClick={() => pauseCampaign(campaign.id)}>
                         <Pause className="w-4 h-4 mr-1" />
-                        Pause
+                        Pausar
                       </Button>
                     )}
                     <Button size="sm" variant="outline">
@@ -343,13 +364,13 @@ export default function Campaigns() {
         <Card>
           <CardContent className="text-center py-12">
             <Mail className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-600 mb-2">No campaigns yet</h3>
+            <h3 className="text-lg font-medium text-gray-600 mb-2">Nenhuma campanha ainda</h3>
             <p className="text-gray-500 mb-6">
-              Create your first email campaign to start reaching your subscribers.
+              Crie sua primeira campanha de email para começar a alcançar seus inscritos.
             </p>
             <Button onClick={() => setShowCreateForm(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Create Your First Campaign
+              Criar Sua Primeira Campanha
             </Button>
           </CardContent>
         </Card>
