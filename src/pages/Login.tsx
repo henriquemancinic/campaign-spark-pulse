@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Mail } from 'lucide-react';
 
 export default function Login() {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      const success = await login(credentials.username, credentials.password);
+      const success = await login(credentials.email, credentials.password);
       if (success) {
         toast({
           title: "Login realizado com sucesso",
@@ -61,13 +61,13 @@ export default function Login() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="username"
-                type="text"
-                placeholder="Digite seu usuário"
-                value={credentials.username}
-                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
+                id="email"
+                type="email"
+                placeholder="Digite seu email"
+                value={credentials.email}
+                onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
                 required
               />
             </div>

@@ -15,6 +15,7 @@ export default function Register() {
     cpf: '',
     company: '',
     username: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -57,18 +58,28 @@ export default function Register() {
       return;
     }
 
+    if (!formData.email.includes('@')) {
+      toast({
+        title: "Email inválido",
+        description: "Por favor, digite um email válido.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const success = await register(formData);
       if (success) {
         toast({
           title: "Cadastro realizado com sucesso",
-          description: "Sua conta foi criada. Agora você pode fazer login.",
+          description: "Verifique seu email para confirmar a conta.",
         });
         navigate('/login');
       } else {
         toast({
           title: "Falha no cadastro",
-          description: "Nome de usuário já existe ou dados inválidos.",
+          description: "Erro ao criar conta. Tente novamente.",
           variant: "destructive",
         });
       }
@@ -139,6 +150,17 @@ export default function Register() {
                 placeholder="Escolha um nome de usuário"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Digite seu email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 required
               />
             </div>

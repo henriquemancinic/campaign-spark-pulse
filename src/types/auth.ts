@@ -19,7 +19,7 @@ export interface AuthState {
 }
 
 export interface LoginCredentials {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -28,6 +28,7 @@ export interface RegisterData {
   cpf: string;
   company: string;
   username: string;
+  email: string;
   password: string;
   confirmPassword: string;
 }

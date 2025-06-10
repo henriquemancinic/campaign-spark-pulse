@@ -1,14 +1,17 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { User, AuthState } from '@/types/auth';
 
 interface AuthContextType extends AuthState {
-  login: (username: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   register: (userData: any) => Promise<boolean>;
   updateTokenExpiry: (userId: string, newExpiry: Date) => Promise<boolean>;
-  getAllUsers: () => User[];
+  getAllUsers: () => Promise<User[]>;
   isTokenValid: () => boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,66 +22,92 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     token: null,
     isAuthenticated: false,
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth data on component mount
-    const storedAuth = localStorage.getItem('emailMarketingAuth');
-    if (storedAuth) {
-      const parsedAuth = JSON.parse(storedAuth);
-      if (new Date(parsedAuth.user.tokenExpiry) > new Date()) {
-        setAuthState({
-          ...parsedAuth,
-          user: {
-            ...parsedAuth.user,
-            tokenExpiry: new Date(parsedAuth.user.tokenExpiry),
-            createdAt: new Date(parsedAuth.user.createdAt),
-            lastLogin: parsedAuth.user.lastLogin ? new Date(parsedAuth.user.lastLogin) : undefined,
-          },
-          isAuthenticated: true,
-        });
-      } else {
-        localStorage.removeItem('emailMarketingAuth');
+    // Get initial session
+    const getSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await loadUserProfile(session.user);
       }
-    }
+      setLoading(false);
+    };
+
+    getSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserProfile(session.user);
+      } else if (event === 'SIGNED_OUT') {
+        setAuthState({
+          user: null,
+          token: null,
+          isAuthenticated: false,
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const generateToken = () => {
-    return Math.random().toString(36).substring(2) + Date.now().toString(36);
+  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
+
+      if (profile) {
+        const user: User = {
+          id: profile.id,
+          name: profile.name,
+          cpf: profile.cpf,
+          company: profile.company,
+          username: profile.username,
+          email: supabaseUser.email,
+          role: profile.role,
+          tokenExpiry: new Date(profile.token_expiry),
+          createdAt: new Date(profile.created_at),
+          lastLogin: profile.last_login ? new Date(profile.last_login) : undefined,
+        };
+
+        setAuthState({
+          user,
+          token: supabaseUser.id,
+          isAuthenticated: true,
+        });
+      }
+    } catch (error) {
+      console.error('Error in loadUserProfile:', error);
+    }
   };
 
-  const login = async (username: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Get users from localStorage
-      const usersData = localStorage.getItem('emailMarketingUsers');
-      const users: User[] = usersData ? JSON.parse(usersData) : [];
-      
-      const user = users.find(u => u.username === username);
-      
-      if (user && new Date(user.tokenExpiry) > new Date()) {
-        const token = generateToken();
-        const updatedUser = {
-          ...user,
-          lastLogin: new Date(),
-          tokenExpiry: new Date(user.tokenExpiry),
-          createdAt: new Date(user.createdAt),
-        };
-        
-        const newAuthState = {
-          user: updatedUser,
-          token,
-          isAuthenticated: true,
-        };
-        
-        setAuthState(newAuthState);
-        localStorage.setItem('emailMarketingAuth', JSON.stringify(newAuthState));
-        
-        // Update user's last login
-        const updatedUsers = users.map(u => u.id === user.id ? updatedUser : u);
-        localStorage.setItem('emailMarketingUsers', JSON.stringify(updatedUsers));
-        
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('Login error:', error);
+        return false;
+      }
+
+      if (data.user) {
+        // Update last login
+        await supabase.rpc('update_last_login', { user_id: data.user.id });
         return true;
       }
-      
+
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -88,29 +117,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (userData: any): Promise<boolean> => {
     try {
-      const usersData = localStorage.getItem('emailMarketingUsers');
-      const users: User[] = usersData ? JSON.parse(usersData) : [];
-      
-      // Check if username already exists
-      if (users.some(u => u.username === userData.username)) {
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email,
+        password: userData.password,
+        options: {
+          data: {
+            name: userData.name,
+            cpf: userData.cpf,
+            company: userData.company,
+            username: userData.username,
+          }
+        }
+      });
+
+      if (error) {
+        console.error('Registration error:', error);
         return false;
       }
-      
-      const newUser: User = {
-        id: Date.now().toString(),
-        name: userData.name,
-        cpf: userData.cpf,
-        company: userData.company,
-        username: userData.username,
-        role: users.length === 0 ? 'admin' : 'user', // First user is admin
-        tokenExpiry: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        createdAt: new Date(),
-      };
-      
-      users.push(newUser);
-      localStorage.setItem('emailMarketingUsers', JSON.stringify(users));
-      
-      return true;
+
+      return !!data.user;
     } catch (error) {
       console.error('Registration error:', error);
       return false;
@@ -119,25 +144,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateTokenExpiry = async (userId: string, newExpiry: Date): Promise<boolean> => {
     try {
-      const usersData = localStorage.getItem('emailMarketingUsers');
-      const users: User[] = usersData ? JSON.parse(usersData) : [];
-      
-      const updatedUsers = users.map(user => 
-        user.id === userId ? { ...user, tokenExpiry: newExpiry } : user
-      );
-      
-      localStorage.setItem('emailMarketingUsers', JSON.stringify(updatedUsers));
-      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ token_expiry: newExpiry.toISOString() })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('Token update error:', error);
+        return false;
+      }
+
       // Update current auth state if it's the current user
       if (authState.user?.id === userId) {
-        const updatedAuthState = {
-          ...authState,
-          user: { ...authState.user, tokenExpiry: newExpiry },
-        };
-        setAuthState(updatedAuthState);
-        localStorage.setItem('emailMarketingAuth', JSON.stringify(updatedAuthState));
+        setAuthState(prev => ({
+          ...prev,
+          user: prev.user ? { ...prev.user, tokenExpiry: newExpiry } : null,
+        }));
       }
-      
+
       return true;
     } catch (error) {
       console.error('Token update error:', error);
@@ -145,22 +169,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getAllUsers = (): User[] => {
-    const usersData = localStorage.getItem('emailMarketingUsers');
-    return usersData ? JSON.parse(usersData) : [];
+  const getAllUsers = async (): Promise<User[]> => {
+    try {
+      const { data: profiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching users:', error);
+        return [];
+      }
+
+      return profiles.map(profile => ({
+        id: profile.id,
+        name: profile.name,
+        cpf: profile.cpf,
+        company: profile.company,
+        username: profile.username,
+        role: profile.role,
+        tokenExpiry: new Date(profile.token_expiry),
+        createdAt: new Date(profile.created_at),
+        lastLogin: profile.last_login ? new Date(profile.last_login) : undefined,
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
   };
 
   const isTokenValid = (): boolean => {
     return authState.user ? new Date(authState.user.tokenExpiry) > new Date() : false;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setAuthState({
       user: null,
       token: null,
       isAuthenticated: false,
     });
-    localStorage.removeItem('emailMarketingAuth');
   };
 
   return (
@@ -172,6 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateTokenExpiry,
       getAllUsers,
       isTokenValid,
+      loading,
     }}>
       {children}
     </AuthContext.Provider>
