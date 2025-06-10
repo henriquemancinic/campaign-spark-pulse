@@ -34,28 +34,41 @@ export default function Register() {
     setFormData({ ...formData, cpf: formatted });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    if (formData.password !== formData.confirmPassword) {
+  const validateForm = () => {
+    if (!formData.name.trim()) {
       toast({
-        title: "Senhas não coincidem",
-        description: "As senhas digitadas não são iguais.",
+        title: "Nome obrigatório",
+        description: "Por favor, digite seu nome completo.",
         variant: "destructive",
       });
-      setIsLoading(false);
-      return;
+      return false;
     }
 
-    if (formData.password.length < 6) {
+    if (!formData.cpf.trim()) {
       toast({
-        title: "Senha muito curta",
-        description: "A senha deve ter pelo menos 6 caracteres.",
+        title: "CPF obrigatório",
+        description: "Por favor, digite seu CPF.",
         variant: "destructive",
       });
-      setIsLoading(false);
-      return;
+      return false;
+    }
+
+    if (!formData.company.trim()) {
+      toast({
+        title: "Empresa obrigatória",
+        description: "Por favor, digite o nome da sua empresa.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (!formData.username.trim()) {
+      toast({
+        title: "Usuário obrigatório",
+        description: "Por favor, escolha um nome de usuário.",
+        variant: "destructive",
+      });
+      return false;
     }
 
     if (!formData.email.includes('@')) {
@@ -64,29 +77,62 @@ export default function Register() {
         description: "Por favor, digite um email válido.",
         variant: "destructive",
       });
-      setIsLoading(false);
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Senha muito curta",
+        description: "A senha deve ter pelo menos 6 caracteres.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast({
+        title: "Senhas não coincidem",
+        description: "As senhas digitadas não são iguais.",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
       return;
     }
 
+    setIsLoading(true);
+
     try {
+      console.log('Submitting registration form:', { ...formData, password: '[HIDDEN]' });
+      
       const success = await register(formData);
+      
       if (success) {
         toast({
           title: "Cadastro realizado com sucesso",
-          description: "Verifique seu email para confirmar a conta.",
+          description: "Sua conta foi criada. Você pode fazer login agora.",
         });
         navigate('/login');
       } else {
         toast({
           title: "Falha no cadastro",
-          description: "Erro ao criar conta. Tente novamente.",
+          description: "Erro ao criar conta. Verifique os dados e tente novamente.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Registration error:', error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro durante o cadastro.",
+        title: "Erro no cadastro",
+        description: "Ocorreu um erro durante o cadastro. Tente novamente.",
         variant: "destructive",
       });
     } finally {

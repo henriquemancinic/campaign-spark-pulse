@@ -18,10 +18,23 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!credentials.email || !credentials.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha email e senha.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with email:', credentials.email);
+      
       const success = await login(credentials.email, credentials.password);
+      
       if (success) {
         toast({
           title: "Login realizado com sucesso",
@@ -31,14 +44,15 @@ export default function Login() {
       } else {
         toast({
           title: "Falha no login",
-          description: "Credenciais inválidas ou token expirado.",
+          description: "Email ou senha incorretos. Verifique suas credenciais.",
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error('Login error:', error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro durante o login.",
+        title: "Erro no login",
+        description: "Ocorreu um erro durante o login. Tente novamente.",
         variant: "destructive",
       });
     } finally {
