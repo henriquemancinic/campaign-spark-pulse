@@ -34,6 +34,7 @@ export default function Register() {
   };
 
   const validateForm = () => {
+    // Validações básicas
     if (!formData.name.trim()) {
       toast({
         title: "Nome obrigatório",
@@ -117,9 +118,13 @@ export default function Register() {
       if (success) {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Sua conta foi criada. Você pode fazer login agora.",
+          description: "Sua conta foi criada. Verificação de email pode ser necessária.",
         });
-        navigate('/login');
+        
+        // Redirecionar após um pequeno delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
       } else {
         toast({
           title: "Falha no cadastro",

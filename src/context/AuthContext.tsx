@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,6 +15,29 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Função para limpar completamente o estado de autenticação
+const cleanupAuthState = () => {
+  try {
+    // Limpar localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Limpar sessionStorage se existir
+    if (typeof sessionStorage !== 'undefined') {
+      Object.keys(sessionStorage).forEach((key) => {
+        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+    }
+  } catch (error) {
+    console.log('Error cleaning auth state:', error);
+  }
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -29,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const getSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session:', session?.user?.id);
         if (session?.user) {
           await loadUserProfile(session.user);
         }
@@ -46,7 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
-        // Use setTimeout to prevent potential deadlocks
         setTimeout(() => {
           loadUserProfile(session.user);
         }, 0);
@@ -106,6 +128,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting login for:', email);
       
+      // Limpar estado antes do login
+      cleanupAuthState();
+      
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Signout error (ignoring):', err);
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -122,7 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await supabase.rpc('update_last_login', { user_id: data.user.id });
         } catch (rpcError) {
           console.error('Error updating last login:', rpcError);
-          // Don't fail login if last login update fails
         }
         return true;
       }
@@ -138,8 +168,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting registration for:', userData.email);
       
-      // Clean up auth state before registration
-      await supabase.auth.signOut();
+      // Limpar estado antes do registro
+      cleanupAuthState();
+      
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Signout error during registration (ignoring):', err);
+      }
       
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
@@ -150,7 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             cpf: userData.cpf,
             company: userData.company,
             username: userData.username,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
 
@@ -179,7 +216,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
 
-      // Update current auth state if it's the current user
       if (authState.user?.id === userId) {
         setAuthState(prev => ({
           ...prev,
@@ -229,7 +265,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      cleanupAuthState();
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -239,6 +276,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token: null,
       isAuthenticated: false,
     });
+    
+    // Force page reload para garantir limpeza completa
+    window.location.href = '/login';
   };
 
   return (

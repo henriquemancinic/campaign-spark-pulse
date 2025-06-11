@@ -40,7 +40,11 @@ export default function Login() {
           title: "Login realizado com sucesso!",
           description: "Bem-vindo de volta!",
         });
-        navigate('/dashboard');
+        
+        // Pequeno delay antes de redirecionar
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 1000);
       } else {
         toast({
           title: "Falha no login",
