@@ -138,6 +138,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting registration for:', userData.email);
       
+      // Clean up auth state before registration
+      await supabase.auth.signOut();
+      
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,

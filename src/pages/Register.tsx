@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -117,7 +116,7 @@ export default function Register() {
       
       if (success) {
         toast({
-          title: "Cadastro realizado com sucesso",
+          title: "Cadastro realizado com sucesso!",
           description: "Sua conta foi criada. Você pode fazer login agora.",
         });
         navigate('/login');

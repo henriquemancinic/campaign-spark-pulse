@@ -37,7 +37,7 @@ export default function Login() {
       
       if (success) {
         toast({
-          title: "Login realizado com sucesso",
+          title: "Login realizado com sucesso!",
           description: "Bem-vindo de volta!",
         });
         navigate('/dashboard');
