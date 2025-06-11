@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,38 +35,10 @@ export default function Register() {
   };
 
   const validateForm = () => {
-    // Validações básicas
     if (!formData.name.trim()) {
       toast({
         title: "Nome obrigatório",
         description: "Por favor, digite seu nome completo.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!formData.cpf.trim()) {
-      toast({
-        title: "CPF obrigatório",
-        description: "Por favor, digite seu CPF.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!formData.company.trim()) {
-      toast({
-        title: "Empresa obrigatória",
-        description: "Por favor, digite o nome da sua empresa.",
-        variant: "destructive",
-      });
-      return false;
-    }
-
-    if (!formData.username.trim()) {
-      toast({
-        title: "Usuário obrigatório",
-        description: "Por favor, escolha um nome de usuário.",
         variant: "destructive",
       });
       return false;
@@ -118,10 +91,9 @@ export default function Register() {
       if (success) {
         toast({
           title: "Cadastro realizado com sucesso!",
-          description: "Sua conta foi criada. Verificação de email pode ser necessária.",
+          description: "Sua conta foi criada. Você pode fazer login agora.",
         });
         
-        // Redirecionar após um pequeno delay
         setTimeout(() => {
           navigate('/login');
         }, 2000);
@@ -170,7 +142,7 @@ export default function Register() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
+              <Label htmlFor="cpf">CPF (opcional)</Label>
               <Input
                 id="cpf"
                 type="text"
@@ -178,29 +150,26 @@ export default function Register() {
                 value={formData.cpf}
                 onChange={handleCPFChange}
                 maxLength={14}
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Empresa</Label>
+              <Label htmlFor="company">Empresa (opcional)</Label>
               <Input
                 id="company"
                 type="text"
                 placeholder="Digite o nome da sua empresa"
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="username">Usuário</Label>
+              <Label htmlFor="username">Usuário (opcional)</Label>
               <Input
                 id="username"
                 type="text"
                 placeholder="Escolha um nome de usuário"
                 value={formData.username}
                 onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                required
               />
             </div>
             <div className="space-y-2">

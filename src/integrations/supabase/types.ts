@@ -66,13 +66,6 @@ export type Database = {
             referencedRelation: "email_lists"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "campaigns_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_configs: {
@@ -106,15 +99,7 @@ export type Database = {
           user_id?: string
           username?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "email_configs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       email_lists: {
         Row: {
@@ -141,15 +126,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "email_lists_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -165,16 +142,16 @@ export type Database = {
           username: string
         }
         Insert: {
-          company: string
-          cpf: string
+          company?: string
+          cpf?: string
           created_at?: string
           id: string
           last_login?: string | null
-          name: string
+          name?: string
           role?: Database["public"]["Enums"]["user_role"]
           token_expiry?: string
           updated_at?: string
-          username: string
+          username?: string
         }
         Update: {
           company?: string

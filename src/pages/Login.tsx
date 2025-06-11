@@ -41,7 +41,6 @@ export default function Login() {
           description: "Bem-vindo de volta!",
         });
         
-        // Pequeno delay antes de redirecionar
         setTimeout(() => {
           navigate('/dashboard');
         }, 1000);

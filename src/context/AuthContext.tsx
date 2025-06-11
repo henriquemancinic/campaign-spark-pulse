@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,29 +15,6 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Função para limpar completamente o estado de autenticação
-const cleanupAuthState = () => {
-  try {
-    // Limpar localStorage
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-        localStorage.removeItem(key);
-      }
-    });
-    
-    // Limpar sessionStorage se existir
-    if (typeof sessionStorage !== 'undefined') {
-      Object.keys(sessionStorage).forEach((key) => {
-        if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-          sessionStorage.removeItem(key);
-        }
-      });
-    }
-  } catch (error) {
-    console.log('Error cleaning auth state:', error);
-  }
-};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -69,9 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('Auth state changed:', event, session?.user?.id);
       
       if (event === 'SIGNED_IN' && session?.user) {
+        // Wait a bit for the trigger to create the profile
         setTimeout(() => {
           loadUserProfile(session.user);
-        }, 0);
+        }, 1000);
       } else if (event === 'SIGNED_OUT') {
         setAuthState({
           user: null,
@@ -88,15 +67,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Loading profile for user:', supabaseUser.id);
       
-      const { data: profile, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
+      // Tentar carregar o perfil algumas vezes caso ainda não tenha sido criado pelo trigger
+      let profile = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!profile && attempts < maxAttempts) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', supabaseUser.id)
+          .single();
 
-      if (error) {
-        console.error('Error loading profile:', error);
-        return;
+        if (!error && data) {
+          profile = data;
+          break;
+        }
+        
+        attempts++;
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
 
       if (profile) {
@@ -118,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token: supabaseUser.id,
           isAuthenticated: true,
         });
+      } else {
+        console.error('Profile not found after multiple attempts');
       }
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
@@ -127,15 +120,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
       console.log('Attempting login for:', email);
-      
-      // Limpar estado antes do login
-      cleanupAuthState();
-      
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('Signout error (ignoring):', err);
-      }
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -167,15 +151,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (userData: any): Promise<boolean> => {
     try {
       console.log('Attempting registration for:', userData.email);
-      
-      // Limpar estado antes do registro
-      cleanupAuthState();
-      
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.log('Signout error during registration (ignoring):', err);
-      }
       
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
@@ -265,8 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      cleanupAuthState();
-      await supabase.auth.signOut({ scope: 'global' });
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -276,9 +250,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       token: null,
       isAuthenticated: false,
     });
-    
-    // Force page reload para garantir limpeza completa
-    window.location.href = '/login';
   };
 
   return (
