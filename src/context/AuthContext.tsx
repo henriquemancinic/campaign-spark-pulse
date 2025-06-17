@@ -10,7 +10,6 @@ interface AuthContextType extends AuthState {
   register: (userData: any) => Promise<boolean>;
   updateTokenExpiry: (userId: string, newExpiry: Date) => Promise<boolean>;
   getAllUsers: () => Promise<User[]>;
-  isTokenValid: () => boolean;
   loading: boolean;
 }
 
@@ -57,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           token: null,
           isAuthenticated: false,
         });
+        setLoading(false);
       }
     });
 
@@ -114,6 +114,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -234,10 +236,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const isTokenValid = (): boolean => {
-    return authState.user ? new Date(authState.user.tokenExpiry) > new Date() : false;
-  };
-
   const logout = async () => {
     try {
       await supabase.auth.signOut();
@@ -260,7 +258,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       updateTokenExpiry,
       getAllUsers,
-      isTokenValid,
       loading,
     }}>
       {children}

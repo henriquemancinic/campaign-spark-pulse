@@ -66,6 +66,13 @@ export type Database = {
             referencedRelation: "email_lists"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "campaigns_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       email_configs: {
@@ -99,7 +106,15 @@ export type Database = {
           user_id?: string
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_configs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       email_lists: {
         Row: {
@@ -126,12 +141,20 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "email_lists_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
           company: string
-          cpf: string
+          cpf: string | null
           created_at: string
           id: string
           last_login: string | null
@@ -143,7 +166,7 @@ export type Database = {
         }
         Insert: {
           company?: string
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           id: string
           last_login?: string | null
@@ -155,7 +178,7 @@ export type Database = {
         }
         Update: {
           company?: string
-          cpf?: string
+          cpf?: string | null
           created_at?: string
           id?: string
           last_login?: string | null

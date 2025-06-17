@@ -10,7 +10,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, logout, isTokenValid } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -19,7 +19,8 @@ export function Layout({ children }: LayoutProps) {
     navigate('/login');
   };
 
-  if (!user || !isTokenValid()) {
+  // Se não há usuário ou está em páginas de auth, apenas renderize as children
+  if (!user || location.pathname === '/login' || location.pathname === '/register') {
     return <>{children}</>;
   }
 

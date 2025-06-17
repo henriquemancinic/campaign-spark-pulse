@@ -9,7 +9,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, adminOnly = false }: ProtectedRouteProps) {
-  const { user, isTokenValid, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return (
@@ -22,7 +22,7 @@ export function ProtectedRoute({ children, adminOnly = false }: ProtectedRoutePr
     );
   }
 
-  if (!user || !isTokenValid()) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
