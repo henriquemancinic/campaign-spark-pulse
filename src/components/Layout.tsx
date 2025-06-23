@@ -3,7 +3,7 @@ import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, User, Settings, Users, LogOut } from 'lucide-react';
+import { Mail, User, Settings, Users, LogOut, FileText } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,8 +19,8 @@ export function Layout({ children }: LayoutProps) {
     navigate('/login');
   };
 
-  // Se não há usuário ou está em páginas de auth, apenas renderize as children
-  if (!user || location.pathname === '/login' || location.pathname === '/register') {
+  // Se não há usuário ou está em páginas de auth/doc, apenas renderize as children
+  if (!user || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/doc') {
     return <>{children}</>;
   }
 
@@ -29,10 +29,11 @@ export function Layout({ children }: LayoutProps) {
     { path: '/email-config', label: 'Config. Email', icon: Settings },
     { path: '/email-lists', label: 'Listas de Email', icon: Mail },
     { path: '/campaigns', label: 'Campanhas', icon: Mail },
+    { path: '/doc', label: 'Documentação', icon: FileText },
   ];
 
   if (user.role === 'admin') {
-    navigationItems.push({ path: '/admin', label: 'Painel Admin', icon: Users });
+    navigationItems.splice(-1, 0, { path: '/admin', label: 'Painel Admin', icon: Users });
   }
 
   return (
@@ -68,7 +69,7 @@ export function Layout({ children }: LayoutProps) {
                 <User className="w-5 h-5 text-gray-400" />
                 <span className="text-sm text-gray-700">{user.name}</span>
                 <span className="text-xs text-gray-500">
-                  Token expira: {new Date(user.tokenExpiry).toLocaleDateString('pt-BR')}
+                  Token expira: {user.tokenExpiry ? new Date(user.tokenExpiry).toLocaleDateString('pt-BR') : 'Sem expiração'}
                 </span>
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>

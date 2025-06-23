@@ -160,7 +160,7 @@ export type Database = {
           last_login: string | null
           name: string
           role: Database["public"]["Enums"]["user_role"]
-          token_expiry: string
+          token_expiry: string | null
           updated_at: string
           username: string
         }
@@ -172,7 +172,7 @@ export type Database = {
           last_login?: string | null
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
-          token_expiry?: string
+          token_expiry?: string | null
           updated_at?: string
           username?: string
         }
@@ -184,7 +184,7 @@ export type Database = {
           last_login?: string | null
           name?: string
           role?: Database["public"]["Enums"]["user_role"]
-          token_expiry?: string
+          token_expiry?: string | null
           updated_at?: string
           username?: string
         }

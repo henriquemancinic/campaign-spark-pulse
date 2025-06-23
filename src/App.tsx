@@ -16,6 +16,7 @@ import AdminPanel from "./pages/AdminPanel";
 import EmailConfig from "./pages/EmailConfig";
 import EmailLists from "./pages/EmailLists";
 import Campaigns from "./pages/Campaigns";
+import Documentation from "./pages/Documentation";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/doc" element={<Documentation />} />
               <Route 
                 path="/dashboard" 
                 element={
