@@ -7,7 +7,7 @@ export interface User {
   username: string;
   email?: string;
   role: 'user' | 'admin';
-  tokenExpiry: Date;
+  tokenExpiry: Date | null;
   createdAt: Date;
   lastLogin?: Date;
 }

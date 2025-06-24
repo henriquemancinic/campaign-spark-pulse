@@ -10,14 +10,22 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
   };
+
+  // Show loading spinner while auth is loading
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   // Se não há usuário ou está em páginas de auth/doc, apenas renderize as children
   if (!user || location.pathname === '/login' || location.pathname === '/register' || location.pathname === '/doc') {
@@ -68,9 +76,14 @@ export function Layout({ children }: LayoutProps) {
               <div className="flex items-center space-x-2">
                 <User className="w-5 h-5 text-gray-400" />
                 <span className="text-sm text-gray-700">{user.name}</span>
-                <span className="text-xs text-gray-500">
-                  Token expira: {user.tokenExpiry ? new Date(user.tokenExpiry).toLocaleDateString('pt-BR') : 'Sem expiração'}
+                <span className="text-xs text-gray-500 capitalize">
+                  {user.role}
                 </span>
+                {user.tokenExpiry && (
+                  <span className="text-xs text-gray-500">
+                    Token expira: {user.tokenExpiry.toLocaleDateString('pt-BR')}
+                  </span>
+                )}
               </div>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />

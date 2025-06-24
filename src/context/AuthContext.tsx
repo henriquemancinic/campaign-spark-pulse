@@ -15,6 +15,28 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// Função para limpar estado de autenticação
+const cleanupAuthState = () => {
+  console.log('Cleaning up auth state...');
+  
+  // Remove standard auth tokens
+  localStorage.removeItem('supabase.auth.token');
+  
+  // Remove all Supabase auth keys from localStorage
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  
+  // Remove from sessionStorage if in use
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -24,32 +46,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    const getSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log('Initial session:', session?.user?.id);
-        if (session?.user) {
-          await loadUserProfile(session.user);
-        }
-      } catch (error) {
-        console.error('Error getting session:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    let mounted = true;
 
-    getSession();
-
-    // Listen for auth changes
+    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
+      if (!mounted) return;
+
       if (event === 'SIGNED_IN' && session?.user) {
-        // Wait a bit for the trigger to create the profile
-        setTimeout(() => {
-          loadUserProfile(session.user);
-        }, 1000);
+        // Defer profile loading to prevent deadlocks
+        setTimeout(async () => {
+          if (mounted) {
+            await loadUserProfile(session.user);
+          }
+        }, 100);
       } else if (event === 'SIGNED_OUT') {
         setAuthState({
           user: null,
@@ -57,60 +68,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated: false,
         });
         setLoading(false);
+      } else if (event === 'INITIAL_SESSION') {
+        if (session?.user) {
+          setTimeout(async () => {
+            if (mounted) {
+              await loadUserProfile(session.user);
+            }
+          }, 100);
+        } else {
+          setLoading(false);
+        }
       }
     });
 
-    return () => subscription.unsubscribe();
+    // THEN check for existing session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Initial session:', session?.user?.id);
+        
+        if (session?.user && mounted) {
+          await loadUserProfile(session.user);
+        } else if (mounted) {
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    getInitialSession();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const loadUserProfile = async (supabaseUser: SupabaseUser) => {
+  const loadUserProfile = async (supabaseUser: SupabaseUser, retryCount = 0) => {
+    const maxRetries = 5;
+    
     try {
-      console.log('Loading profile for user:', supabaseUser.id);
+      console.log('Loading profile for user:', supabaseUser.id, 'Retry:', retryCount);
       
-      // Tentar carregar o perfil algumas vezes caso ainda não tenha sido criado pelo trigger
-      let profile = null;
-      let attempts = 0;
-      const maxAttempts = 5;
-      
-      while (!profile && attempts < maxAttempts) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', supabaseUser.id)
-          .single();
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
 
-        if (!error && data) {
-          profile = data;
-          break;
+      if (error) {
+        console.error('Profile loading error:', error);
+        
+        // Se o perfil não existe e ainda há tentativas, aguarda um pouco e tenta novamente
+        if (error.code === 'PGRST116' && retryCount < maxRetries) {
+          console.log('Profile not found, retrying in 1 second...');
+          setTimeout(() => {
+            loadUserProfile(supabaseUser, retryCount + 1);
+          }, 1000);
+          return;
         }
         
-        attempts++;
-        if (attempts < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
+        // Se esgotaram as tentativas, define estado sem perfil
+        console.error('Profile not found after retries or other error:', error);
+        setLoading(false);
+        return;
       }
 
       if (profile) {
         const user: User = {
           id: profile.id,
-          name: profile.name,
-          cpf: profile.cpf,
-          company: profile.company,
-          username: profile.username,
-          email: supabaseUser.email,
-          role: profile.role,
-          tokenExpiry: new Date(profile.token_expiry),
+          name: profile.name || 'Usuário',
+          cpf: profile.cpf || '',
+          company: profile.company || 'Empresa',
+          username: profile.username || '',
+          email: supabaseUser.email || profile.email || '',
+          role: profile.role || 'user',
+          tokenExpiry: profile.token_expiry ? new Date(profile.token_expiry) : null,
           createdAt: new Date(profile.created_at),
           lastLogin: profile.last_login ? new Date(profile.last_login) : undefined,
         };
+
+        console.log('Profile loaded successfully:', user.name, user.role);
 
         setAuthState({
           user,
           token: supabaseUser.id,
           isAuthenticated: true,
         });
-      } else {
-        console.error('Profile not found after multiple attempts');
       }
     } catch (error) {
       console.error('Error in loadUserProfile:', error);
@@ -123,6 +171,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting login for:', email);
       
+      // Clean up existing state before login
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Global signout error (expected):', err);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -140,6 +198,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (rpcError) {
           console.error('Error updating last login:', rpcError);
         }
+        
+        // Force page reload for clean state
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1000);
+        
         return true;
       }
 
@@ -154,15 +218,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('Attempting registration for:', userData.email);
       
+      // Clean up existing state before registration
+      cleanupAuthState();
+      
+      // Attempt global sign out first
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        console.log('Global signout error (expected):', err);
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
         options: {
           data: {
-            name: userData.name,
-            cpf: userData.cpf,
-            company: userData.company,
-            username: userData.username,
+            name: userData.name || 'Usuário',
+            cpf: userData.cpf || '',
+            company: userData.company || 'Empresa',
+            username: userData.username || '',
           },
           emailRedirectTo: `${window.location.origin}/`
         }
@@ -174,6 +248,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log('Registration successful:', data.user?.id);
+      
+      // Se o usuário foi criado com sucesso, tenta fazer login automaticamente
+      if (data.user && !data.user.email_confirmed_at) {
+        console.log('User created but needs email confirmation');
+        return true;
+      } else if (data.user) {
+        // Usuário criado e confirmado automaticamente
+        setTimeout(() => {
+          window.location.href = '/dashboard';
+        }, 1500);
+        return true;
+      }
+
       return !!data.user;
     } catch (error) {
       console.error('Registration error:', error);
@@ -221,12 +308,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       return profiles.map(profile => ({
         id: profile.id,
-        name: profile.name,
-        cpf: profile.cpf,
-        company: profile.company,
-        username: profile.username,
-        role: profile.role,
-        tokenExpiry: new Date(profile.token_expiry),
+        name: profile.name || 'Usuário',
+        cpf: profile.cpf || '',
+        company: profile.company || 'Empresa',
+        username: profile.username || '',
+        email: profile.email || '',
+        role: profile.role || 'user',
+        tokenExpiry: profile.token_expiry ? new Date(profile.token_expiry) : null,
         createdAt: new Date(profile.created_at),
         lastLogin: profile.last_login ? new Date(profile.last_login) : undefined,
       }));
@@ -238,16 +326,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('Logging out...');
+      
+      // Clean up auth state first
+      cleanupAuthState();
+      
+      // Sign out from Supabase
+      await supabase.auth.signOut({ scope: 'global' });
+      
+      // Force page refresh for clean state
+      window.location.href = '/login';
     } catch (error) {
       console.error('Logout error:', error);
+      // Force cleanup even if signout fails
+      window.location.href = '/login';
     }
-    
-    setAuthState({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-    });
   };
 
   return (
