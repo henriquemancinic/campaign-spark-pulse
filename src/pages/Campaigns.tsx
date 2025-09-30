@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Mail, Plus, Calendar, Settings, Play, Pause, Eye } from 'lucide-react';
 import { EmailCampaign, EmailList } from '@/types/email';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Campaigns() {
   const { user } = useAuth();
@@ -118,18 +119,65 @@ export default function Campaigns() {
     });
   };
 
-  const startCampaign = (campaignId: string) => {
-    const updatedCampaigns = campaigns.map(campaign =>
-      campaign.id === campaignId
-        ? { ...campaign, status: 'sending' as const }
-        : campaign
-    );
-    saveCampaigns(updatedCampaigns);
-    
-    toast({
-      title: "Campanha iniciada",
-      description: "A campanha de email está sendo enviada de acordo com suas configurações.",
-    });
+  const startCampaign = async (campaignId: string) => {
+    try {
+      // First save to database
+      const campaign = campaigns.find(c => c.id === campaignId);
+      if (!campaign) return;
+
+      const { data, error } = await supabase
+        .from('campaigns')
+        .insert([{
+          id: campaignId,
+          user_id: user?.id,
+          name: campaign.name,
+          subject: campaign.subject,
+          message: campaign.message,
+          email_list_id: campaign.emailListId,
+          scheduled_for: campaign.scheduledFor ? campaign.scheduledFor.toISOString() : null,
+          send_interval: campaign.sendInterval,
+          emails_per_batch: campaign.emailsPerBatch,
+          status: 'sending',
+          sent_count: 0,
+          total_emails: campaign.totalEmails
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      // Call edge function to start sending
+      const { error: functionError } = await supabase.functions.invoke('send-campaign', {
+        body: { campaignId }
+      });
+
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+
+      // Update local state
+      const updatedCampaigns = campaigns.map(campaign =>
+        campaign.id === campaignId
+          ? { ...campaign, status: 'sending' as const }
+          : campaign
+      );
+      saveCampaigns(updatedCampaigns);
+      
+      toast({
+        title: "Campanha iniciada",
+        description: "A campanha de email está sendo enviada de acordo com suas configurações.",
+      });
+
+    } catch (error: any) {
+      console.error('Error starting campaign:', error);
+      toast({
+        title: "Erro ao iniciar campanha",
+        description: error.message || "Ocorreu um erro ao iniciar a campanha.",
+        variant: "destructive",
+      });
+    }
   };
 
   const pauseCampaign = (campaignId: string) => {
