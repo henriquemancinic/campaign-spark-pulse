@@ -71,13 +71,6 @@ export type Database = {
             referencedRelation: "email_lists"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "campaigns_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_configs: {
@@ -114,15 +107,7 @@ export type Database = {
           user_id?: string
           username?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "email_configs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       email_lists: {
         Row: {
@@ -152,15 +137,7 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "email_lists_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -223,13 +200,7 @@ export type Database = {
       }
     }
     Enums: {
-      campaign_status:
-        | "draft"
-        | "scheduled"
-        | "sending"
-        | "completed"
-        | "failed"
-        | "paused"
+      campaign_status: "draft" | "scheduled" | "sending" | "sent" | "paused"
       user_role: "user" | "admin"
     }
     CompositeTypes: {
@@ -358,14 +329,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      campaign_status: [
-        "draft",
-        "scheduled",
-        "sending",
-        "completed",
-        "failed",
-        "paused",
-      ],
+      campaign_status: ["draft", "scheduled", "sending", "sent", "paused"],
       user_role: ["user", "admin"],
     },
   },

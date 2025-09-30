@@ -1,38 +1,95 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Users, Settings, Calendar } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  const stats = [
+  const [stats, setStats] = useState([
     {
       title: 'Email Lists',
-      value: '12',
+      value: '0',
       description: 'Active email lists',
       icon: Users,
       action: () => navigate('/email-lists'),
     },
     {
       title: 'Campaigns',
-      value: '8',
+      value: '0',
       description: 'Total campaigns',
       icon: Mail,
       action: () => navigate('/campaigns'),
     },
     {
       title: 'Emails Sent',
-      value: '2,450',
+      value: '0',
       description: 'This month',
       icon: Calendar,
       action: () => navigate('/campaigns'),
     },
-  ];
+  ]);
+
+  // Carregar estatísticas reais do banco
+  useEffect(() => {
+    const loadStats = async () => {
+      if (!user) return;
+
+      try {
+        // Buscar número de listas de email
+        const { count: emailListsCount } = await supabase
+          .from('email_lists')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        // Buscar número de campanhas
+        const { count: campaignsCount } = await supabase
+          .from('campaigns')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
+
+        // Buscar total de emails enviados (soma dos sent_count)
+        const { data: campaignsData } = await supabase
+          .from('campaigns')
+          .select('sent_count')
+          .eq('user_id', user.id);
+
+        const totalEmailsSent = campaignsData?.reduce((sum, campaign) => sum + campaign.sent_count, 0) || 0;
+
+        setStats([
+          {
+            title: 'Email Lists',
+            value: String(emailListsCount || 0),
+            description: 'Active email lists',
+            icon: Users,
+            action: () => navigate('/email-lists'),
+          },
+          {
+            title: 'Campaigns',
+            value: String(campaignsCount || 0),
+            description: 'Total campaigns',
+            icon: Mail,
+            action: () => navigate('/campaigns'),
+          },
+          {
+            title: 'Emails Sent',
+            value: totalEmailsSent.toLocaleString(),
+            description: 'Total sent',
+            icon: Calendar,
+            action: () => navigate('/campaigns'),
+          },
+        ]);
+      } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+      }
+    };
+
+    loadStats();
+  }, [user, navigate]);
 
   const quickActions = [
     {
