@@ -61,7 +61,7 @@ export default function EmailLists() {
     }
 
     const newEmailList: EmailList = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newList.name,
       emails: emailArray,
       userId: user?.id || '',

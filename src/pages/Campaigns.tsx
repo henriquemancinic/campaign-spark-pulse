@@ -86,7 +86,7 @@ export default function Campaigns() {
     }
 
     const campaign: EmailCampaign = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       name: newCampaign.name,
       subject: newCampaign.subject,
       message: newCampaign.message,
@@ -125,6 +125,43 @@ export default function Campaigns() {
       const campaign = campaigns.find(c => c.id === campaignId);
       if (!campaign) return;
 
+      // Check if we have the email list in the database first
+      const { data: dbEmailLists, error: listError } = await supabase
+        .from('email_lists')
+        .select('*')
+        .eq('user_id', user?.id);
+
+      if (listError) {
+        throw new Error(`Error fetching email lists: ${listError.message}`);
+      }
+
+      // Find the email list from localStorage
+      const localEmailList = emailLists.find(list => list.id === campaign.emailListId);
+      if (!localEmailList) {
+        throw new Error('Lista de email não encontrada');
+      }
+
+      // Check if this email list exists in database, if not create it
+      let dbEmailList = dbEmailLists?.find(list => list.name === localEmailList.name);
+      
+      if (!dbEmailList) {
+        const { data: newList, error: createListError } = await supabase
+          .from('email_lists')
+          .insert([{
+            name: localEmailList.name,
+            description: '',
+            emails: localEmailList.emails,
+            user_id: user?.id
+          }])
+          .select()
+          .single();
+
+        if (createListError) {
+          throw new Error(`Error creating email list: ${createListError.message}`);
+        }
+        dbEmailList = newList;
+      }
+
       const { data, error } = await supabase
         .from('campaigns')
         .insert([{
@@ -133,7 +170,7 @@ export default function Campaigns() {
           name: campaign.name,
           subject: campaign.subject,
           message: campaign.message,
-          email_list_id: campaign.emailListId,
+          email_list_id: dbEmailList.id,
           scheduled_for: campaign.scheduledFor ? campaign.scheduledFor.toISOString() : null,
           send_interval: campaign.sendInterval,
           emails_per_batch: campaign.emailsPerBatch,
